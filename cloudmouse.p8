@@ -126,6 +126,8 @@ function _update()
 		foreach(clouds,move_cloud)
 	end -- /if num_clouds > limit
 	
+	foreach(containers,move_container)
+	
 	-- shoot clouds
 	shoot() -- tab 6
 	foreach(shots,move_shot) -- tab 6	
@@ -150,7 +152,7 @@ function _draw()
 	spr(plyr.n,plyr.x,plyr.y,1,1,plyr.flip)
 	
 	-- draw cloud containers
-	foreach(containers,draw_container)
+	foreach(containers,draw_obj)
 
 	-- determine number of clouds
 	-- to draw
@@ -159,21 +161,17 @@ function _draw()
 		print("+"..num_clouds-limit,plyr.x,plyr.y-8,0)
 		for i=1,range do
 			cloud=clouds[i]
-			draw_cloud(cloud)
+			draw_obj(cloud)
 		end -- /for
 	else
 		-- draw all collected clouds
-		foreach(clouds,draw_cloud)
+		foreach(clouds,draw_obj)
 	end -- /if num_clouds > limit
 	
-	-- draw dropped clouds
-	foreach(shots,draw_shot)
-
-	-- draw cloud pickups
-	foreach(pickups,draw_pickup)
-	
-	-- draw enemies
-	foreach(enemies,draw_enemy)
+	-- draw shots,pickups,enemies
+	foreach(shots,draw_instance)
+	foreach(pickups,draw_instance)
+	foreach(enemies,draw_instance)
 	
 	-- print debug data
 	test = ""
@@ -190,6 +188,11 @@ function _draw()
 	end -- /if show_hud
 	
 end -- /function _draw()
+
+-- draw object
+function draw_instance(obj)
+	spr(obj.n,obj.x,obj.y)
+end -- /function draw_instance(obj)
 
 -- draw framed hud elements
 -- given x,y, width,height,
@@ -357,6 +360,81 @@ function draw_clock()
 	-- draw clock
 	draw_hudbox(clock,clockx,clocky,clockw,5,7,0)
 end -- /function
+
+-- elapsed play time
+function draw_time()
+
+	-- default positioning
+	timex  = camx+110
+	timew  = 15
+	
+	-- start timer
+	t += 1
+	
+	-- convert to seconds
+	secs = flr(t/30)
+	
+	-- roll over to minutes
+	if secs >= 60
+	and secs%60 > 0 then
+		mins += 1
+		secs = 0
+		t=0
+	end -- /if secs >= 60
+	
+	if mins > 9 then
+		timew=19
+		timex=106
+	end -- /if mins > 9
+	
+	-- roll over to hours
+	if mins >= 60 
+	and mins%60 > 0 then
+		hrs += 1
+		mins = 0
+		secs = 0
+		t=0
+		timew=19
+		timex=106
+	end -- /if mins >= 60
+	
+	-- format leading zeroes
+	if secs < 10 then
+		sectext = "0"..secs
+	else
+		sectext = secs
+	end -- /if secs < 10
+	
+	if hrs > 0 and mins < 10 then
+		mintext = "0"..mins
+	else
+		mintext = mins
+	end -- /if mins < 10
+	
+	-- format time string
+	if hrs > 0 then
+		timetext = hrs..":"..mintext..":"..sectext
+		timew=27
+		timex=98
+	else
+		timetext = mintext..":"..sectext
+	end -- /if hrs > 0
+	
+	if hrs > 9 then
+		timew=31
+		timex=94
+	end -- /if hrs > 9
+	
+	if hrs > 99 then
+		timew=35
+		timex=90
+	end -- /if hrs > 9
+	
+	timey=camy+120
+
+	-- draw time
+	--draw_hudbox(timetext,timex,timey,timew,5,7,0)
+end -- /function draw_time()
 -->8
 -- camera and map functions
 
@@ -651,7 +729,7 @@ function animate(obj,first,last,rate)
 		-- reset timer
 		obj.t = 0
 		
-	end -- /if
+	end -- /if obj.t > rate
 end -- /function animate()
 
 -- animate all map tile clouds
@@ -685,16 +763,12 @@ function anim_clouds()
 				
 					-- regular clouds
 					if f0 then
-						if n==3 or n==4 then
-							first = 3
-							last  = 4
-						end -- /if/elseif n
+						first = 3
+						last  = 4
 					-- gold cloud containers
-					elseif f1 then 
-						if n >= 19 and n <=21 then
-							first = 19
-							last  = 21
-						end -- if n
+					elseif f1 then
+						first = 19
+						last  = 21
 					end -- /if/else if f0/f1
 				
 					-- animate sprite
@@ -853,8 +927,7 @@ end -- /function make_container()
 -->8
 -- containers and shots
 
--- draw either cloud or container
--- try this out
+-- draw cloud or container
 function draw_obj(obj)
 	-- offset cloud x,y based on
 	-- number of clouds
@@ -863,61 +936,22 @@ function draw_obj(obj)
 	
 	-- apply player's x momentum
 	-- to cloud offset
-	obj *= -plyr.dx/4
+	offsetx *= -plyr.dx/4
 	
 	-- apply offset to x,y position
 	obj.x = plyr.x+offsetx
 	obj.y = plyr.y+offsety
 	
-	-- draw container sprite
+	-- draw object sprite
 	spr(obj.n,obj.x,obj.y)
 end -- /function draw_obj()
-
--- draw cloud container
-function draw_container(container)
-	-- offset cloud x,y based on
-	-- number of clouds
-	local offsetx=container.i*8
-	local offsety=container.i*8
-	
-	-- apply player's x momentum
-	-- to cloud offset
-	offsetx *= -plyr.dx/4
-	
-	-- apply offset to x,y position
-	container.x = plyr.x+offsetx
-	container.y = plyr.y+offsety
-	
-	-- draw container sprite
-	spr(container.n,container.x,container.y)
-end -- /function draw_container()
-
--- draw cloud object
-function draw_cloud(cloud)
-
-	-- offset cloud x,y based on
-	-- number of clouds
-	local offsetx=cloud.i*8
-	local offsety=cloud.i*8
-	
-	-- apply player's x momentum
-	-- to cloud offset
-	offsetx *= -plyr.dx/4
-	
-	-- apply offset to x,y position
-	cloud.x = plyr.x+offsetx
-	cloud.y = plyr.y+offsety
-	
-	-- draw cloud sprite
-	spr(cloud.n,cloud.x,cloud.y)	
-end -- /function draw_cloud()
 
 function move_cloud(cloud)
 	-- collect other clouds by
 	-- colliding your collected
 	-- clouds into them
+	collect(cloud,0)
 	collect(cloud,1)
-	collect(cloud,2)
 	
 	-- detect collision w/pickups
 	for pickup in all(pickups) do
@@ -939,6 +973,11 @@ function move_cloud(cloud)
 		end -- /if collide w/cloud
 	end -- /for enemy
 end -- /function move_cloud
+
+function move_container(container)
+	collect(container,0)
+	collect(container,1)
+end -- /function move_container
 
 -- shoot clouds
 -- press ❎ to drop a cloud
@@ -963,6 +1002,7 @@ function make_shot(x,y,dx)
 	-- start at position of last
 	-- cloud following player
 	local i=min(limit,num_clouds)
+	shot.n=3
 	shot.x=clouds[i].x
 	shot.y=y+plyr.h+(i*8)
 	
@@ -1006,11 +1046,6 @@ function move_shot(shot)
 	end -- /for
 	
 end -- /function move_shot
-
--- draw shot
-function draw_shot(shot)
-	spr(3,shot.x,shot.y)
-end -- /function draw_shot
 -->8
 -- pickups and enemies
 
@@ -1141,11 +1176,6 @@ function move_pickup(pickup)
 	end -- /for
 end -- /function move_pickup()
 
--- draw pickup
-function draw_pickup(pickup)
-  spr(pickup.n,pickup.x,pickup.y)
-end -- /draw_pickup()
-
 -- enemy functions
 
 -- make a single enemy object
@@ -1224,11 +1254,6 @@ function move_enemy(enemy)
 	end -- /for
  
 end -- /function move_enemy()
-
--- draw enemy
-function draw_enemy(enemy)
-  spr(enemy.n,enemy.x,enemy.y)
-end -- /draw_enemy()
 
 -- scatter lost clouds after
 -- collision with enemy
@@ -1419,7 +1444,7 @@ c6ccccc6000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000031000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
