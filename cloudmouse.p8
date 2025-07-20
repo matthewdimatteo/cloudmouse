@@ -977,6 +977,15 @@ end -- /function move_cloud
 function move_container(container)
 	collect(container,0)
 	collect(container,1)
+	
+	-- detect collision w/pickups
+	for pickup in all(pickups) do
+		if collide(container,pickup) then
+			get_cloud()
+			del(pickups,pickup)
+			sfx(0)
+		end -- /if collide w/shot
+	end -- /for pickup
 end -- /function move_container
 
 -- shoot clouds
